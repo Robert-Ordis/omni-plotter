@@ -2,3 +2,7 @@
 	path = modules/live-chart
 	url = https://github.com/Robert-Ordis/live-chart
 	branch = ro-develop
+[submodule "bundle-apps/RetroSpy"]
+	path = bundle-apps/RetroSpy
+	url = https://github.com/Robert-Ordis/RetroSpy
+	branch = master
