@@ -1,0 +1,2 @@
+ ntldd -R ./omni-plotter.exe | sed 's/\\/\//g' | awk '{print $3}' | grep -e "mingw" | xargs -i cp -p {} .
+
