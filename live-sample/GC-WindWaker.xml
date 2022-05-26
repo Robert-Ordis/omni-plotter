@@ -101,9 +101,9 @@
 	
 	
 	<mapping name="l" 				group="3" coeff="128"/>
-	<mapping name="l_trig_raw"	group="3" color="#FF00FF88" pack="tr_l"/>
+	<mapping name="trig_l_raw"	group="3" color="#FF00FF88" pack="tr_l"/>
 	<mapping name="r"				group="3" coeff="128"/>
-	<mapping name="r_trig_raw"	group="3" color="#FF00FF88" pack="tr_r"/>
+	<mapping name="trig_r_raw"	group="3" color="#FF00FF88" pack="tr_r"/>
 	
 	
 	<mapping name="lstick_y_raw"	group="4" color="#FF00FF88" pack="ls_y"/>

@@ -66,7 +66,7 @@
 	<calculate name="cstick_angle" method="atan2" group="2" coeff="57.29577" color="#22AAFF88">
 		<!--
 			<arg>
-			<calculate>における引数です。
+			<calculate>における変数です。
 			 name	-><mapping>か<calculate>の"name"を指定することで、該当する数を引数とします。
 			 shift	->例えばアナログスティックの値が下駄履き式の0-256で表現されていた場合に使用します。
 		-->
@@ -90,15 +90,16 @@
 		 atan2/angle	:2つの<arg>要素から角度を算出します。-π～πです。 atan2(a1, a2) 
 						 coeff="57.29577"とでもすれば、大方の度数になります。
 		 sum			:子要素で指定された値の合計値を算出します。 sum(a1, a2, ...)
-		 to-int			:1つの子要素の値をムリヤリintでデコードします。. to-int(a). Default is 8-bit.
+		 to-int			:1つの子要素の値をムリヤリintでデコードします。. to-int(a). デフォルトで8bitでデコードします
+						 例えば、255→-1になる感じです
 		 ※diffとかやってみようとしたんですが、制御きかな過ぎてやめました。
 	-->
 	
 	
 	<mapping name="l" group="3" coeff="128"/>
-	<mapping name="l_trig_raw" group="3" color="#FF00FF88" pack="tr_l"/>
+	<mapping name="trig_l_raw" group="3" color="#FF00FF88" pack="tr_l"/>
 	<mapping name="r" group="3" coeff="128"/>
-	<mapping name="r_trig_raw" group="3" color="#FF00FF88" pack="tr_r"/>
+	<mapping name="trig_r_raw" group="3" color="#FF00FF88" pack="tr_r"/>
 	
 	
 	<mapping name="lstick_y_raw" group="4" color="#FF00FF88" pack="ls_y"/>
@@ -138,8 +139,8 @@
 			 src		->必須。<mapping><calculate>に書かれた"name"の値を書いてください
 			 ※以下の値のデフォルト値は<mapping><calculate>に書かれた同名値のそれと同じになります。
 	 		 group		->プロット時、どのパネルにグラフを出すかの指定です。ゼロスタートです。
-			legend		->プロットエリア/選択エリアに出す「凡例名」です。
-			color		->色です。#RRGGBBAA か #RRGGBB、はたまた#RGBA #RGB #RRRGGGBBBAAA #RRRGGGBBBを書けます。
+			 legend		->プロットエリア/選択エリアに出す「凡例名」です。
+			 color		->色です。#RRGGBBAA か #RRGGBB、はたまた#RGBA #RGB #RRRGGGBBBAAA #RRRGGGBBBを書けます。
 
 		-->
 		<serie src="lstick_x_raw" group="0"/>
