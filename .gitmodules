@@ -1,0 +1,4 @@
+[submodule "live-chart"]
+	path = live-chart
+	url = https://github.com/Robert-Ordis/live-chart
+	branch = ro-develop
