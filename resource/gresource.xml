@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+	<gresource prefix="/resource">
+		<file compressed="true" preprocess="xml-stripblanks">ui/main.ui</file>
+		<file compressed="true" preprocess="xml-stripblanks">ui/toggler.ui</file>
+	</gresource>
+</gresources>
