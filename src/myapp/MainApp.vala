@@ -248,7 +248,7 @@ namespace MyApp{
 		
 		public void put_values(string index_name, Gee.SortedSet<LiveChart.TimestampedValue?> new_points){
 			var sb = this.serie_map.get(index_name);
-			if(sb == null || sb.serie == null || sb.grp_num < 0 || new_points.size <= 0){
+			if(sb == null || sb.serie == null || new_points.size <= 0){
 				return;
 			}
 			/*
