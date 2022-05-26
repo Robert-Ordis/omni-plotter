@@ -1,0 +1,73 @@
+<plotter name="Sample" author="Robert_Ordis" type="switch">
+	<exporter>
+		<local port="55555" threshold="512" protocol="udp"/>
+		<dest ip="127.0.0.1" port="8934" protocol="udp"/>
+		<dest ip="127.0.0.1" port="8934" protocol="udp"/>
+	</exporter>
+	<receiver>
+	<!-- this will also be used as dest above. -->
+		<!-- For feedbacking from recorded data
+		<local protocol="file" rate_ms="1000" dir="{default is "data/" on .xml}"/>
+		-->
+		<local port="8934" protocol="udp" rate_ms="100"/>
+		<!--<dest dir="C:\retro-plotter\gamecube\windwaker"/>-->
+	</receiver>
+
+	<mapping name="a"	coeff="128" legend="a_button" color="#00FF00"/>
+	<mapping name="b"	coeff="128" legend="b_button" color="#00FF00"/>
+	<mapping name="x"	coeff="128" legend="x_button" color="#00FF00"/>
+	<mapping name="y"	coeff="128" legend="y_button" color="#00FF00"/>
+	
+	<mapping name="up"		coeff="128" for-plot="false"/>
+	<mapping name="down"	coeff="-128" for-plot="false"/>
+	<mapping name="right"	coeff="128" for-plot="false"/>
+	<mapping name="left"	coeff="-128" for-plot="false"/>
+	
+	<mapping name="l"	coeff="-128" group="1" color="#FF2288"/>
+	<mapping name="r"	coeff="128" group="1" color="#FF2288"/>
+	<mapping name="zl"	coeff="-128" group="1" color="#FF2288"/>
+	<mapping name="zr"	coeff="128" group="1" color="#FF2288"/>
+	
+	<mapping name="ls" pack="lsp" coeff="128" group="1" color="#FF2288"/>
+	<mapping name="lstick_x" pack="lsx" coeff="100" group="1" color="#FF00FF88"/>
+	<mapping name="lstick_y" pack="lsy" coeff="100" group="1" color="#FF00FF88"/>
+	
+	<mapping name="rs" pack="rsp" coeff="128" group="1" color="#FF2288"/>
+	<mapping name="rstick_x" pack="rsx" coeff="100" group="1" color="#FF00FF88"/>
+	<mapping name="rstick_y" pack="rsy" coeff="100" group="1" color="#FF00FF88"/>
+	
+	<mapping name="+" pack="st" coeff="128" group="1" color="#00FFBB"/>
+	<mapping name="-" pack="sel" coeff="128" group="1" color="#00FFBB"/>
+	
+	<calculate name="lstick_angle" method="atan2" coeff="57" group="2" color="#22AAFF88">
+		<arg name="lstick_y"/>
+		<arg name="lstick_x"/>
+	</calculate>
+	
+	<calculate name="lstick_abs" method="abs" group="2" color="#22AAFF88">
+		<arg name="lstick_y"/>
+		<arg name="lstick_x"/>
+	</calculate>
+	
+	<calculate name="dpad-y" method="sum" group="-1" color="#FFAA2288">
+		<arg name="up"/>
+		<arg name="down"/>
+	</calculate>
+	
+	<calculate name="dpad-x" method="sum" group="-1" color="#FFAA2288">
+		<arg name="right"/>
+		<arg name="left"/>
+	</calculate>
+	
+
+
+	<layout name="maxim-any" default="1">
+		<serie src="b" group="0"/>
+		<serie src="y" group="0"/>
+		<serie src="r" group="0"/>
+		<serie src="l" group="0"/>
+		<serie src="dpad-x" group="1"/>
+		<serie src="dpad-y" group="1"/>
+	</layout>
+	
+</plotter>

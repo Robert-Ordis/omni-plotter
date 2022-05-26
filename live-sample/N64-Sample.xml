@@ -1,0 +1,167 @@
+<plotter name="Nintendo64-Sample" author="Robert_Ordis" type="Nintendo64">
+	<!--
+		* This xml is also useable for Customized-RetroSpy as-is.
+	-->
+	<!-- Exporter config. for Customized-RetroSpy. -->
+	<exporter>
+		<local port="55555" threshold="512" protocol="udp"/>
+		<dest ip="127.0.0.1" port="8934" protocol="udp"/>
+	</exporter>
+	
+	<!-- Receiver config. for omni-plotter. -->
+	<receiver>
+		<!-- this will also be used as dest above. -->
+		
+		<!-- On xml of "Record", protocol will be changed to "file". -->
+		<local port="8934" protocol="udp" rate_ms="100"/>
+	</receiver>
+	
+	<!--
+		Receive/File format is shown as here.
+		 * Below is a converted representation from MessagePack to JSON.
+		   Receive/File format is represented in MessagePack.
+		{
+			"t": int(millisec at now),
+			"v": {
+				"a": bool,
+				"b": bool,
+				"z": bool,
+				"st": bool,
+				"lstick_y_raw": int,
+				"lstick_x_raw": int,
+				"lstick_x": double,
+				"lstick_y": double,
+				...
+			}
+		}
+	-->
+	
+	<!--
+		<mapping>
+		Determin which input you are going to export and plot
+		 coeff		->val to multiply after receiving.(default=1)
+		 name		->Same as the "name" on skin.xml(MUST)
+		 pack		->Name on packing to packet. Shorter please.(default=same as "name")
+		 group		->Which panel do you want to be plotted?(default=0)
+		 legend		->name for showing in plotter/selector(default=same as name)
+		 color		->#RRGGBBAA or #RRGGBB. Can be #RGBA/#RGB/#RRRGGGBBBAAA/#RRRGGGBBB.
+		 for-plot	->If "false", then it does never appear as legend.(but can use as calc-arg)
+	-->
+	<mapping name="a" coeff="128" legend="a_button" color="#00FF00"/>
+	<mapping name="b" coeff="128" legend="b_button" color="#008080"/>
+	<mapping name="z" coeff="128" legend="z_trigger" color="#808000"/>
+	<mapping name="start" pack="st" coeff="128" color="#00FFBB"/>
+	
+	
+	<mapping name="cup"	coeff="128" 	group="1"	legend="c-u" color="#00FFFF"/>
+	<mapping name="cdown"	coeff="-128"	group="1"	legend="c-d" color="#00FFFF"/>
+	<mapping name="cleft"	coeff="-128"	group="1"	legend="c-l" color="#00FFFF"/>
+	<mapping name="cright"	coeff="128"	group="1"	legend="c-r" color="#00FFFF"/>
+	<mapping name="r"		coeff="128"	group="1"	legend="r_trigger" color="#808000"/>
+	
+	
+	<mapping name="up"		coeff="128"	for-plot="false"/>
+	<mapping name="down"	coeff="-128"	for-plot="false"/>
+	<mapping name="right"	coeff="128"	for-plot="false"/>
+	<mapping name="left"	coeff="-128"	for-plot="false"/>
+	<mapping name="l"		coeff="128"	group="2" legend="l_trigger" color="#008080"/>
+	<calculate name="dpad-y" method="sum" group="2" color="#FFAA2288">
+		<arg name="up"/>
+		<arg name="down"/>
+	</calculate>
+	<calculate name="dpad-x" method="sum" group="2" color="#FFAA2288">
+		<arg name="right"/>
+		<arg name="left"/>
+	</calculate>
+	
+	
+	<mapping name="stick_y_raw" for-plot="false"/>
+	<mapping name="stick_x_raw" for-plot="false"/>
+	<!--
+		<calculate>
+		Calculate and plot the value. e.g. Angle/Abs of stick
+		*Most of the args of "mapping" can be used for this too. excepting "pack"
+		 method		->"abs/angle(atan2)/sum/to-int"
+		 priority	->Order of calculation. Younger is prefered.
+					  Necessary for "chained-calculation". default is 1.
+	-->
+	<calculate name="stick_y_int" method="to-int" 
+		group="3" color="#FF00FF88" priority="1">
+		<!--
+			<arg>
+			arguments of "calculate" are put here.
+			name->pick it up from "name" on <mapping> or <calculate>
+			shift->For adjustment if stick's raw value is represented in 0 to 256.
+		-->
+		<arg name="stick_y_raw"/>
+		<!--
+			<const>
+			Special constant values defined in specific "method".
+			 e.g. "bit-width" for "to-int".
+			name	->Probably shows the usage of the const-value.
+			value	->Its value.
+		-->
+		<const name="bit-width" value="8"/>
+	</calculate>
+	<calculate name="stick_x_int" method="to-int" 
+		group="3" color="#FF00FF88" priority="1">
+		<arg name="stick_x_raw"/>
+	</calculate>
+	<!--
+		Supported "method" values are here.
+		 abs			:Calculates the absolute value of args in child elements. abs(a1, a2, ...)
+		 atan2/angle	:Calculates the angle of 2 <arg>s. atan2(y, x). -pi to pi.
+						 It is represented in radian. so coeff="57.29577" makes it to degree method.
+		 sum			:Calculates the sum of args in child elements. sum(a1, a2, ...)
+		 to-int			:Treat an "arg" as signed-integer forcibly (e.g. 255 -> -1). to-int(a). Default is 8-bit.
+	-->
+	<calculate name="stick_angle" method="atan2" coeff="57.29577" 
+		group="4" color="#22AAFF88" priority="2">
+		<arg name="stick_y_int"/>
+		<arg name="stick_x_int"/>
+	</calculate>
+	
+	<calculate name="stick_abs" method="abs" 
+		group="4" color="#22AAFF88" priority="2">
+		<arg name="stick_y_int"/>
+		<arg name="stick_x_int"/>
+	</calculate>
+	
+	
+	
+	<!--
+		<layout>
+		 Define the "Layout". It decides which serie will be plotted or not.
+		 Basically, for excepting unused buttons, for usual or performing some glitches I think.
+		 name	->As-is. Probably being named "which glitch do you want to perform?".
+	-->
+	<layout name="analog-game" default="1">
+		<!--
+			<serie>
+			 Serie plotted in the <layout>. 
+			 src		->MUST specify the "name" on <mapping><calculate>.
+			 *Default value of below params are the value inheritated from <mapping><calculate> above.
+			 group		->Which panel do you want to be plotted?
+			 legend		->name for showing in plotter/selector
+			 color		->#RRGGBBAA or #RRGGBB. Can be #RGBA/#RGB/#RRRGGGBBBAAA/#RRRGGGBBB.
+		-->
+		<serie src="stick_angle" group="0"/>
+		<serie src="stick_abs" group="0"/>
+		<serie src="a" group="1"/>
+		<serie src="start" group="1"/>
+		<serie src="b" group="2"/>
+		<serie src="z" group="2"/>
+		<serie src="cup" group="3"/>
+		<serie src="cdown" group="3"/>
+		<serie src="cleft" group="3"/>
+		<serie src="cright" group="3"/>
+	</layout>
+	
+	<layout name="Explaining">
+		<serie src="stick_x_int" legend="lstick_x" group="0"/>
+		<serie src="stick_y_int" legend="lstick_y" group="0"/>
+		<serie src="stick_angle" group="1"/>
+		<serie src="stick_abs" group="1"/>
+	</layout>
+
+</plotter>

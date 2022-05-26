@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<plotter name="WindWaker-MSS" author="Robert_Ordis" type="gamecube">
+	<!--
+		※この設定ファイルは改造版RetroSpyにもそのまま読み込ませることができます。
+	-->
+	<!-- 送信設定 -->
+	
+	
+	<!-- 受信設定(omni-plotterの) -->
+	<receiver>
+		<!-- localは、上のexporter->destの代わりとしても使えるはずです。 -->
+		<!-- 記録ファイルのindex.xmlでは、protocolは"file"に自動で差し替えられます。 -->
+		<local port="8934" protocol="file" rate_ms="100" dir="data"/>
+	</receiver>
+
+	<!--
+		受信パケット/ファイルのフォーマットは下記のとおりです。
+		※下記のjsonは、MessagePackを変換した一例です。
+		　実際の受信/ファイル読み込みフォーマットはMessagePackになります。
+		{
+			"t": int(millisec at now),
+			"v": {
+				"a": bool,
+				"b": bool,
+				"z": bool,
+				"st": bool,
+				"lstick_y_raw": int,
+				"lstick_x_raw": int,
+				"lstick_x": double,
+				"lstick_y": double,
+				...
+			}
+		}
+	-->
+	
+	<!--
+		<mapping>
+		どの入力を出力/プロット/記録するかを決定します。
+		 coeff		->受信時に乗算補正をかける係数です。true/falseとかで「1」だと見づらいんです。(default=1)
+		 name		->skin.xmlにおけるbuttonとかstickとかの"name"と同じ値にしてください。(MUST)
+		 pack		->MessagePack出力における要素キーです。容量圧縮用です。(default="name"と同じ)
+		 group		->プロット時、どのパネルにグラフを出すかの指定です。ゼロスタートです。(default=0)
+		 legend		->プロットエリア/選択エリアに出す「凡例名」です。(default="name"と同じ)
+		 color		->色です。#RRGGBBAA か #RRGGBB、はたまた#RGBA #RGB #RRRGGGBBBAAA #RRRGGGBBBを書けます。
+		 for-plot	->"false"にした場合、プロット用としては使用されません。(後述のcalculateのみに使う、という宣言です)
+	-->
+	<mapping name="a" coeff="128" legend="a_button" color="#00FF00"/>
+	<mapping name="b" coeff="128" legend="b_button" color="#00FF00"/>
+	<mapping name="start" coeff="128" legend="start_button" color="#00FFBB" pack="st"/>
+	
+	<mapping name="x" group="1" coeff="128" legend="x_button" color="#00FF00"/>
+	<mapping name="y" group="1" coeff="128" legend="y_button" color="#00FF00"/>
+	<mapping name="z" group="1" coeff="128" legend="z_button" color="#00FF00"/>
+	
+	<mapping name="cstick_y_raw" group="2" color="#FF00FF88" pack="cs_y"/>
+	<mapping name="cstick_x_raw" group="2" color="#FF00FF88" pack="cs_x"/>
+	<!--
+		<calculate>
+		受信した値から新たに計算した値をプロットします。
+		例えばアナログスティックの傾きとか角度ですね。
+		※<mapping>における設定値のうち、"pack"を除いたものはここでも設定できます。
+		 method		->計算方式です。値は後述です。
+		 priority	->計算順です。若い番号を優先して計算します。
+					  <calculate>の値を別の<calculate>に使用する場合に必須です。(default=1)
+	-->
+	<calculate name="cstick_angle" method="atan2" group="2" coeff="57.29577" color="#22AAFF88">
+		<!--
+			<arg>
+			<calculate>における引数です。
+			 name	-><mapping>か<calculate>の"name"を指定することで、該当する数を引数とします。
+			 shift	->例えばアナログスティックの値が下駄履き式の0-256で表現されていた場合に使用します。
+		-->
+		<arg name="cstick_y_raw" shift="-128"/>
+		<arg name="cstick_x_raw" shift="-128"/>
+		<!--
+			<const>
+			"method"毎に指定された「特別な引数」を設定します。
+			例えば"bit-width"をビット幅として、"to-int"にて指定できます。
+			name	->多分、「用途」みたいな感覚になるんじゃないでしょうか。
+			value	->説明不要ッ！！
+		-->
+	</calculate>
+	<calculate name="cstick_abs" method="abs" group="2" color="#22AAFF88">
+		<arg name="cstick_y_raw" shift="-128"/>
+		<arg name="cstick_x_raw" shift="-128"/>
+	</calculate>
+	<!--
+		"method"でサポートされているものは現在下記のとおりです。
+		 abs			:子要素で指定された値の絶対値を算出します。 abs(a1, a2, ...)
+		 atan2/angle	:2つの<arg>要素から角度を算出します。-π～πです。 atan2(a1, a2) 
+						 coeff="57.29577"とでもすれば、大方の度数になります。
+		 sum			:子要素で指定された値の合計値を算出します。 sum(a1, a2, ...)
+		 to-int			:1つの子要素の値をムリヤリintでデコードします。. to-int(a). Default is 8-bit.
+		 ※diffとかやってみようとしたんですが、制御きかな過ぎてやめました。
+	-->
+	
+	
+	<mapping name="l" group="3" coeff="128"/>
+	<mapping name="l_trig_raw" group="3" color="#FF00FF88" pack="tr_l"/>
+	<mapping name="r" group="3" coeff="128"/>
+	<mapping name="r_trig_raw" group="3" color="#FF00FF88" pack="tr_r"/>
+	
+	
+	<mapping name="lstick_y_raw" group="4" color="#FF00FF88" pack="ls_y"/>
+	<mapping name="lstick_x_raw" group="4" color="#FF00FF88" pack="ls_x"/>
+	<calculate name="lstick_angle" method="atan2" group="4" coeff="57.29577" color="#22AAFF88">
+		<arg name="lstick_y_raw" shift="-128"/>
+		<arg name="lstick_x_raw" shift="-128"/>
+	</calculate>
+	<calculate name="lstick_abs" method="abs" group="4" color="#22AAFF88">
+		<arg name="lstick_y_raw" shift="-128"/>
+		<arg name="lstick_x_raw" shift="-128"/>
+	</calculate>
+	
+	<mapping name="up" coeff="128" for-plot="false"/>
+	<mapping name="down" coeff="-128" for-plot="false"/>
+	<mapping name="right" coeff="128" for-plot="false"/>
+	<mapping name="left" coeff="-128" for-plot="false"/>
+	<calculate name="dpad-y" method="sum" group="5" color="#FFAA2288">
+		<arg name="up"/>
+		<arg name="down"/>
+	</calculate>
+	<calculate name="dpad-x" method="sum" group="5" color="#FFAA2288">
+		<arg name="right"/>
+		<arg name="left"/>
+	</calculate>
+	
+	<!--
+		<layout>
+		 「レイアウト」を定義します。要するに：表示したい値系列を予めまとめて選択します。
+		 基本は使用しないボタンを取り除いておくとかそんなではありますが…
+		 name	->まんま。「どのバグ技を成功させたい？」とかでも使用するんじゃないかなあ。
+	-->
+	<layout name="UMSS" default="1">
+		<!--
+			<serie>
+			 <layout>中で表示する値系列を定義します。 
+			 src		->必須。<mapping><calculate>に書かれた"name"の値を書いてください
+			 ※以下の値のデフォルト値は<mapping><calculate>に書かれた同名値のそれと同じになります。
+	 		 group		->プロット時、どのパネルにグラフを出すかの指定です。ゼロスタートです。
+			legend		->プロットエリア/選択エリアに出す「凡例名」です。
+			color		->色です。#RRGGBBAA か #RRGGBB、はたまた#RGBA #RGB #RRRGGGBBBAAA #RRRGGGBBBを書けます。
+
+		-->
+		<serie src="lstick_x_raw" group="0"/>
+		<serie src="lstick_y_raw" group="0"/>
+		<serie src="start" legend="start_btn" group="1"/>
+	</layout>
+	
+	<layout name="Explaining">
+		<serie src="lstick_x_raw" legend="lstick_x" group="0"/>
+		<serie src="lstick_y_raw" legend="lstick_y" group="0"/>
+		<serie src="lstick_angle" group="1" color="#FFFFFFFF"/>
+	</layout>
+
+</plotter>
