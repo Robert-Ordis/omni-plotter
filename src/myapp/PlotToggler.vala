@@ -126,7 +126,7 @@ namespace MyApp{
 		private ChildWidgets ui;
 		private SeriesStorage dui;
 		
-		private string cwd;
+		public string cwd {get; private set;}
 		
 		public string basename { get; private set; default = "";}
 		public signal void onInitError(string filename, string msg);

@@ -16,6 +16,7 @@ public class TopContext {
 		public string	index_xml = "";
 		public string	data_dir = "";
 		public string	base_dir = "";
+		public string?	open_dir = null;
 		public int64	border_bytes = 512;
 		public uint8[] buf;
 		public MyAppProtocol.PacketRecorder? recorder = null;
@@ -247,6 +248,9 @@ int main (string[] args) {
 		var idx = GLib.Path.build_path(GLib.Path.DIR_SEPARATOR_S,
 			ctx.rec.base_dir, curr_dir, "index.xml");
 		
+		ctx.rec.open_dir = GLib.Path.build_path(GLib.Path.DIR_SEPARATOR_S,
+			tog.cwd, ctx.rec.base_dir, curr_dir);
+		
 		bool ret = false;
 		File? file = null;
 		
@@ -326,6 +330,20 @@ int main (string[] args) {
 		ctx.rec.recorder = null;
 		ctx.rec.storage?.on_cancel();
 		ctx.rec.storage = null;
+		if(ctx.rec.open_dir != null){
+			print(ctx.rec.open_dir);
+			var file = File.new_for_path(ctx.rec.open_dir);
+			if(file.query_exists()){
+				bool r = false;
+				try{
+					r = GLib.AppInfo.launch_default_for_uri(file.get_uri(), null);
+				}
+				catch(GLib.Error e){}
+				if(!r){
+					Posix.system("explorer %s &".printf(ctx.rec.open_dir));
+				}
+			}
+		}
 	});
 	
 	win.root.destroy.connect(Gtk.main_quit);

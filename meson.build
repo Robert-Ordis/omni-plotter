@@ -6,6 +6,7 @@ gnome = import('gnome')
 
 cc = meson.get_compiler('c')
 m_dep = cc.find_library('m')
+p_dep = meson.get_compiler('vala').find_library('posix')
 
 dependencies = [
 	dependency('gee-0.8'),
@@ -15,7 +16,8 @@ dependencies = [
 	dependency('libxml-2.0'),
 	dependency('msgpack'),
 	dependency('livechart'),
-	m_dep
+	m_dep,
+	p_dep
 ]
 
 sources = files(
