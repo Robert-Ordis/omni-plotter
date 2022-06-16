@@ -194,6 +194,7 @@ namespace MyAppProtocol {
 			return;
 		}
 		
+		/// \todo Define the "final time". If the size exceeds the limit but tstamp is older than "final time", then put pkt into older area.
 		public int64 push(int64 tstamp, uint8[] pkt, int64 pkt_len){
 			//1: search tstamp.
 			var fname = "%016llX.mpack".printf(tstamp);
