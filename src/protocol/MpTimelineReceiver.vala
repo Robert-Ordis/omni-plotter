@@ -132,35 +132,32 @@ namespace MyAppProtocol{
 			}
 			
 			MessagePack.Unpacked pac = {};
-			MessagePack.Unpacker unpacker = new MessagePack.Unpacker(this.buffer.length + packet.length + 64);
 			
 			//次、自前のバッファに新しくやってきた分のパケットをコピーする
 			Memory.copy(&(this.buffer[this.buffer_pushed]), packet, packet.length);
 			this.buffer_pushed += packet.length;
 			
-			//自前バッファの内容を、unpackerに丸ごと渡してあげる。
-			Memory.copy(unpacker.buffer(), this.buffer, this.buffer_pushed);
-			
-			//mpに対して、未使用バッファをどれくらい使ったかを通達する
-			unpacker.buffer_consumed(this.buffer_pushed);
 			
 			/// \todo 	この後、messagePackを全力でパースして、上位に結果を渡す準備をする。
 			///			多分、tを一度覚えておき、vの中身を全力でぶん回してaddしていくんだろうなって。
 			///			それを、continueが宣告されるまでひたすら繰り返すわけ。
 			
-			//print("start parsing msgpack\n");
+			//unpacker.message_size()で、尻切れトンボになったバイト数がわかる。
+			//→毎回新しいUnpacker用意して丸ごと投げてるので、pushed - msg_sizeで使ったバイト数になる。
+			
+			//ret_len = (ssize_t)this.buffer_pushed - (ssize_t)unpacker.message_size();
+			
+			var onset = 0;
 			for(;;){
-				//print("\n");
-				//print("unpacker_size msg = %zu, parsed = %zu\n".printf(unpacker.message_size(), unpacker.parsed_size()));
-				//print("unpacker_size capa = %zu\n".printf(unpacker.buffer_capacity()));
-				var res = unpacker.next(out pac);
-				int64 ts;
-				//print("parsed_result: %d\n".printf(res));
+				size_t outlen = 0;
+				var res = pac.next(this.buffer[onset: this.buffer_pushed], out outlen);
 				switch(res){
 				case MessagePack.UnpackReturn.SUCCESS:
 				case MessagePack.UnpackReturn.EXTRA_BYTES:
+					//print("read %zu bytes\n".printf(outlen));
 					//データをきちんと読み込めたことを示す…らしい。
 					//pac.data.print(GLib.stdout);
+					int64 ts;
 					if(this.treat_unpacked(ref pac.data, out ts)){
 						if(ts < start_time){
 							start_time = ts;
@@ -168,32 +165,40 @@ namespace MyAppProtocol{
 					}
 					//終わったら生成したデータは掃除してあげること。
 					pac.release_zone();
+					ret_len += (ssize_t)outlen;
+					onset += (int)outlen;
 					continue;
 				case MessagePack.UnpackReturn.CONTINUE:
+					pac.release_zone();
 					break;
 				default:
 					//print("may be wrong packet\n");
 					//パースエラーやメモリが足りないという理由でエラーを起こす
-					unpacker.reset();
+					pac.release_zone();
 					return -1;
 				}
 				break;
 			}
 			
-			//unpacker.message_size()で、尻切れトンボになったバイト数がわかる。
-			//→毎回新しいUnpacker用意して丸ごと投げてるので、pushed - msg_sizeで使ったバイト数になる。
-			
-			ret_len = (ssize_t)this.buffer_pushed - (ssize_t)unpacker.message_size();
-			
 			//最終的にデコードされた分をparsedに打ち込む。
 			Memory.copy(parsed, this.buffer, ret_len);
-				
+			
+			//次の「プッシュ済みバッファ」の長さを決める
+			this.buffer_pushed = this.buffer_pushed - ret_len;
+			//print("next pushed is %zu\n".printf(this.buffer_pushed));
+			if(this.buffer_pushed > 0){
+				//残ったパケットデータがある場合
+				//print("->memmove\n");
+				Memory.move(this.buffer, &(this.buffer[ret_len]), this.buffer_pushed);
+			}
+			/*
 			if(unpacker.message_size() > 0){
 				//デコードされた分をbufferから退去させる
 				Memory.move(this.buffer, &(this.buffer[ret_len]), unpacker.message_size());
 				//assert(ret_len + unpacker.message_size() == packet.length);
 			}
 			this.buffer_pushed = unpacker.message_size();
+			*/
 			return ret_len;
 		}
 		
