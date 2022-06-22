@@ -333,7 +333,7 @@ int main (string[] args) {
 		if(ctx.rec.open_dir != null){
 			print(ctx.rec.open_dir);
 			var file = File.new_for_path(ctx.rec.open_dir);
-			if(file.query_exists()){
+			if(file.query_exists() && ctx.recv.sock != null){
 				bool r = false;
 				try{
 					r = GLib.AppInfo.launch_default_for_uri(file.get_uri(), null);
