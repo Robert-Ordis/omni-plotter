@@ -321,11 +321,7 @@ int main (string[] args) {
 		catch(GLib.Error e){
 			print("Error: %s\n", e.message);
 		}
-		finally{
-			if(file != null){
-				file.unref();
-			}
-		}
+		finally{}
 		
 		return ret;
 	});
