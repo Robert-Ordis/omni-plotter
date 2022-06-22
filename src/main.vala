@@ -132,15 +132,19 @@ int main (string[] args) {
 					
 					SocketAddress raddr = null;
 					var recved_len = ctx.recv.sock.receive_from(out raddr, ctx.recv.buf);
-					int64 start_time;
+					int64 max_time = 0;
 					//print("read from socket: %zd\n".printf(recved_len));
 					
 					if(recved_len > 0){
-						var parsed_len = ctx.recv.parser.push(ctx.recv.buf[0: recved_len], ref ctx.rec.buf, out start_time);
-						//print("parsed: %zd/ start: %lld\n".printf(parsed_len, start_time));
-						win.set_max_time(start_time + rate_ms * 0);
-						var index_time = ctx.rec.recorder?.push(start_time, ctx.rec.buf, parsed_len);
-						ctx.rec.storage?.notify_index_recording(index_time);
+						ctx.recv.parser.push(ctx.recv.buf[0: recved_len], (parsed, ts) => {
+							//print("parsed: %zd/ start: %lld\n".printf(parsed.length, ts));
+							if(max_time < ts){
+								max_time = ts;
+							}
+							var index_time = ctx.rec.recorder?.push(ts, parsed, parsed.length);
+							ctx.rec.storage?.notify_index_recording(index_time);
+						});
+						win.set_max_time(max_time + rate_ms * 0);
 					}
 					return true;
 				});

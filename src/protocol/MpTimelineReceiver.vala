@@ -98,58 +98,40 @@ namespace MyAppProtocol{
 		//パケットを詰め込む。パースエラーを起こさないシロモノならtrue。
 		//理想的には、parsedに「この時点をもって正しくパースできたバイナリ」が入る。
 		//MessagePackの場合・・・、unpacker.buffer()とunpacker.parsed_size()でも使うか？
-		public ssize_t push(uint8[] packet, ref uint8[] parsed, out int64 start_time){
-			start_time = 0x7FFFFFFFFFFFFFFF;
+		//public ssize_t push(uint8[] packet, ref uint8[] parsed, out int64 start_time){
+		public ssize_t push(uint8[] packet, CaptureParsed? capture_parsed = null){
+			
 			if(packet.length <= 0){
 				return -1;
 			}
 			
-			size_t rem_length = this.buffer.length - this.buffer_pushed;
+			size_t onset = 0;
 			ssize_t ret_len = 0;
+			MessagePack.Unpacked pac = MessagePack.Unpacked();
 			
-			if(rem_length < packet.length){
-				//ダメそうならパケットを分割し、それぞれに対して再帰pushを行う
-				//→はみ出ない程度にpushを行い、結果としてパースできてflushにつながるなら上々という目論見
-				ssize_t tmp_len = 0;
-				int64 start_time2 = 0x7FFFFFFFFFFFFFFF;
-				uint8[] fragment = new uint8[parsed.length];
-				
-				if((tmp_len = this.push(packet[0:rem_length], ref parsed, out start_time)) < 0){
-					return tmp_len;
+			if((this.buffer.length - this.buffer_pushed) < packet.length){
+				//print("extend buffer. prev is %zd\n".printf(this.buffer.length));
+				// 次に来たデータでバッファをはみ出してしまう場合。
+				// →べき乗式でメモリを広げる。
+				size_t t_len = this.buffer.length;
+				while((t_len - this.buffer_pushed) < packet.length){
+					t_len *= 2;
 				}
-				
-				ret_len += tmp_len;
-				if((tmp_len = this.push(packet[rem_length: packet.length], ref fragment, out start_time2)) < 0){
-					return -1;
-				}
-				
-				Memory.copy(&(parsed[ret_len]), fragment, tmp_len);
-				if(start_time2 < start_time){
-					start_time = start_time2;
-				}
-				
-				return ret_len + tmp_len;
+				var new_buf = new uint8[t_len];
+				Memory.copy(new_buf, this.buffer, this.buffer_pushed);
+				this.buffer = new_buf;
 			}
 			
-			MessagePack.Unpacked pac = {};
-			
+			//print("buf size: %zd\n".printf(this.buffer.length));
 			//次、自前のバッファに新しくやってきた分のパケットをコピーする
 			Memory.copy(&(this.buffer[this.buffer_pushed]), packet, packet.length);
 			this.buffer_pushed += packet.length;
 			
-			
-			/// \todo 	この後、messagePackを全力でパースして、上位に結果を渡す準備をする。
-			///			多分、tを一度覚えておき、vの中身を全力でぶん回してaddしていくんだろうなって。
-			///			それを、continueが宣告されるまでひたすら繰り返すわけ。
-			
-			//unpacker.message_size()で、尻切れトンボになったバイト数がわかる。
-			//→毎回新しいUnpacker用意して丸ごと投げてるので、pushed - msg_sizeで使ったバイト数になる。
-			
-			//ret_len = (ssize_t)this.buffer_pushed - (ssize_t)unpacker.message_size();
-			
-			var onset = 0;
+			// パース方法をUnpacked + 固定バッファに切り替えたため、
+			// 「その時パースされたエリア」の特定が楽になりました
 			for(;;){
 				size_t outlen = 0;
+				//print("parse %zu to %zu\n".printf(onset, this.buffer_pushed));
 				var res = pac.next(this.buffer[onset: this.buffer_pushed], out outlen);
 				switch(res){
 				case MessagePack.UnpackReturn.SUCCESS:
@@ -157,16 +139,15 @@ namespace MyAppProtocol{
 					//print("read %zu bytes\n".printf(outlen));
 					//データをきちんと読み込めたことを示す…らしい。
 					//pac.data.print(GLib.stdout);
-					int64 ts;
+					int64 ts = 0L;
 					if(this.treat_unpacked(ref pac.data, out ts)){
-						if(ts < start_time){
-							start_time = ts;
+						if(capture_parsed != null){
+							capture_parsed(this.buffer[onset: onset + outlen], ts);
 						}
 					}
 					//終わったら生成したデータは掃除してあげること。
 					pac.release_zone();
-					ret_len += (ssize_t)outlen;
-					onset += (int)outlen;
+					onset += outlen;
 					continue;
 				case MessagePack.UnpackReturn.CONTINUE:
 					pac.release_zone();
@@ -180,17 +161,22 @@ namespace MyAppProtocol{
 				break;
 			}
 			
+			ret_len = (ssize_t)onset;
 			//最終的にデコードされた分をparsedに打ち込む。
-			Memory.copy(parsed, this.buffer, ret_len);
+			//Memory.copy(parsed, this.buffer, ret_len);
 			
 			//次の「プッシュ済みバッファ」の長さを決める
-			this.buffer_pushed = this.buffer_pushed - ret_len;
-			//print("next pushed is %zu\n".printf(this.buffer_pushed));
-			if(this.buffer_pushed > 0){
+			//print("pushed%zu vs ret%zd\n".printf(this.buffer_pushed, ret_len));
+			if(ret_len > 0 && ret_len < this.buffer_pushed){
 				//残ったパケットデータがある場合
 				//print("->memmove\n");
+				this.buffer_pushed = this.buffer_pushed - ret_len;
 				Memory.move(this.buffer, &(this.buffer[ret_len]), this.buffer_pushed);
 			}
+			else{
+				this.buffer_pushed = 0;
+			}
+			//print("next pushed is %zu\n".printf(this.buffer_pushed));
 			/*
 			if(unpacker.message_size() > 0){
 				//デコードされた分をbufferから退去させる
