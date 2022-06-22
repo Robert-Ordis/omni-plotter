@@ -89,6 +89,7 @@ namespace MyAppProtocol {
 		private string base_dir;
 		private int64 border_size;
 		public int64 average_period {get; private set;}
+		private int64 final_time = -0x7FFFFFFFFFFFFFFF;
 		private bool _debug = false;
 		
 		//One inst per one recording session.
@@ -147,6 +148,7 @@ namespace MyAppProtocol {
 				}
 				if(this.indexes.size > 0){
 					this.average_period = (this.indexes.last().first_time - this.indexes.first().first_time) / this.indexes.size;
+					this.final_time = this.indexes.last().first_time + this.average_period;
 				}
 			}
 			catch(GLib.Error err){
@@ -200,32 +202,30 @@ namespace MyAppProtocol {
 			var fname = "%016llX.mpack".printf(tstamp);
 			var tmp_index = this.index_searcher;
 			tmp_index.set_each_file(fname, this.base_dir);
+			tmp_index.first_time = tstamp;
 			
+			//print("record %016llX, final is %016llX\n".printf(tstamp, this.final_time));
+			//print("indexes size: %d\n".printf(this.indexes.size));
 			if(this.indexes.size <= 0){
-				// new session.
+				// new session
 				tmp_index = null;
 			}
-			else if(this.indexes.last().first_time >= tstamp){
-				// highest >= tstamp: push into ceil(geq).
-				//print("highest >= tstamp: push into ceil(geq).\n");
-				tmp_index = this.indexes.ceil(tmp_index);
-			}
-			else{
-				// highest < tstamp: push into last MAYBE.
-				//print("highest < tstamp: push into last MAYBE.\n");
-				tmp_index = this.indexes.last();
-				if(this.border_size < tmp_index.written_len){
-					//reached to size limit->new index.
-					this.average_period += (tstamp - tmp_index.first_time);
-					if(this.indexes.size > 2){
-						this.average_period /= 2;
+			else if((tmp_index = this.indexes.floor(tmp_index)) != null){
+				if(tmp_index == this.indexes.last()){
+					if(this.border_size < tmp_index.written_len && this.final_time < tstamp){
+						//Border size is exeeded and tstamp is later than final->Outsider.
+						this.average_period += (tstamp - tmp_index.first_time);
+						if(this.indexes.size > 1){
+							this.average_period /= 2;
+						}
+						tmp_index.is_completed = true;
+						tmp_index = null;
 					}
-					tmp_index.is_completed = true;
-					tmp_index = null;
 				}
 			}
 			
 			if(tmp_index == null){
+				//print("make new index: %016llX\n".printf(tstamp));
 				tmp_index = new RecordIndex(tstamp, fname, this.base_dir);
 				this.indexes.add(tmp_index);
 			}
@@ -234,6 +234,9 @@ namespace MyAppProtocol {
 			//print("border size is %lld\n".printf(this.border_size));
 			/*
 			foreach(var v in this.indexes){
+				if(tmp_index.first_time == v.first_time){
+					print("*");
+				}
 				print("%lld->%s(%lld bytes)\n".printf(v.first_time, v.each_file, v.written_len));
 			}
 			*/
@@ -241,6 +244,10 @@ namespace MyAppProtocol {
 			//then push into thread pool.
 			pool.add(new Worker(tmp_index.each_file, pkt, pkt_len));
 			//print("waiting = %u\n".printf(pool.unprocessed()));
+			if(this.final_time < tstamp){
+				//print("new final_time: %016llX\n".printf(tstamp));
+				this.final_time = tstamp;
+			}
 			
 			return tmp_index.first_time;
 		}
