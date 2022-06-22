@@ -8,7 +8,7 @@ namespace MyAppProtocol{
 	///			そもそもの話、建前上はTCPバッファも同じく扱うことを想定しているのでsaddrは排除しないといけない。
 	public delegate bool OnEmit<T>(string name, Gee.SortedSet<T> serie);
 	
-	/// \note this.buffer[from: to]とかやって、len必要ないようにする
+	/// \note	パースできたバイナリデータを都度都度取り扱う。
 	public delegate void CaptureParsed(uint8[] parsed, int64 start_time);
 	
 	public delegate T TimelineMaker<T, V>(int64 timestamp, V value);
@@ -18,12 +18,7 @@ namespace MyAppProtocol{
 	// V->派生先のクラスにてどの値で読むのか決定する
 	public interface Receiver<T, V>: GLib.Object {
 		
-		//パケットを詰め込む。パースエラーを起こさないシロモノならtrue。
-		//理想的には、parsedに「この時点をもって正しくパースできたバイナリ」が入る。
-		//返はparsedに入れられたバイト数。駄目ならマイナス。
-		//public abstract ssize_t push(uint8[] packet, ref uint8[] parsed, out int64 start_time);
-		
-		/// \todo : パースしたごとに抽出する方式じゃないと、録画データの時系列に整合が取れなくなる。のでそうする。
+		//パケットを詰め込む。パースエラーを起こさないシロモノなら0以上。
 		public abstract ssize_t push(uint8[] packet, CaptureParsed? capture_parsed = null);
 		
 		//時系列を一つ登録する。それ以外は読み捨てることを実装者は約束する。
